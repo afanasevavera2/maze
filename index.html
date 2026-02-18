@@ -27,7 +27,6 @@
             display: block;
         }
 
-        /* Анимированный загрузочный экран */
         #unity-loading-bar {
             position: absolute;
             left: 50%;
@@ -164,7 +163,6 @@
             z-index: 2000;
         }
 
-        /* Информация об ошибках */
         #error-info {
             position: absolute;
             bottom: 10px;
@@ -181,7 +179,6 @@
             word-break: break-all;
             max-height: 200px;
             overflow-y: auto;
-            display: none;
         }
     </style>
 </head>
@@ -197,30 +194,35 @@
             <div id="progress-percent">0%</div>
         </div>
         <div id="unity-warning"></div>
-        <div id="error-info"></div>
+        <div id="error-info">Загрузка...</div>
     </div>
 
     <script>
-        // Функция для отображения ошибок
-        function showError(message) {
-            console.error(message);
+        function log(message) {
+            console.log(message);
             const errorDiv = document.getElementById('error-info');
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            const time = new Date().toLocaleTimeString();
+            errorDiv.innerHTML = time + ': ' + message + '<br>' + errorDiv.innerHTML;
         }
 
-        // Определяем базовый URL
-        const baseUrl = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-        console.log('Base URL:', baseUrl);
+        log('Скрипт запущен');
 
-        // ВАЖНО: Укажите правильный путь к папке Build
-        // Если index.html и папка Build находятся в корне:
-        const buildUrl = baseUrl + 'Build';
+        // ВАЖНО: Укажите правильный путь к папке Build!
+        // Попробуйте по очереди эти варианты:
 
-        // Если папка Build находится внутри maze:
-        // const buildUrl = baseUrl + 'maze/Build';
+        // Вариант 1: Если Build в той же папке, что и index.html
+        const buildUrl = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'Build';
 
-        console.log('Build URL:', buildUrl);
+        // Вариант 2: Если Build в папке maze
+        // const buildUrl = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) + 'maze/Build';
+
+        // Вариант 3: Если index.html в корне, а Build в подпапке
+        // const buildUrl = '/Build';
+
+        // Вариант 4: Простой относительный путь
+        // const buildUrl = 'Build';
+
+        log('Попытка загрузить из: ' + buildUrl);
 
         const canvas = document.getElementById('unity-canvas');
         const loadingBar = document.getElementById('unity-loading-bar');
@@ -229,13 +231,10 @@
         const warningBanner = document.getElementById('unity-warning');
 
         function unityShowBanner(msg, type) {
-            console.log('Unity banner:', type, msg);
-            showError(type + ': ' + msg);
-
+            log(type + ': ' + msg);
             const div = document.createElement('div');
             div.innerHTML = msg;
-            if (type === 'error') div.style = 'background:red;padding:8px;color:#fff';
-            else if (type === 'warning') div.style = 'background:yellow;padding:8px;color:#000';
+            div.style.cssText = type === 'error' ? 'background:red;padding:8px;color:#fff' : 'background:yellow;padding:8px;color:#000';
             warningBanner.appendChild(div);
             warningBanner.style.display = 'block';
             setTimeout(() => {
@@ -248,62 +247,31 @@
             }, 5000);
         }
 
-        // Пробуем разные пути для загрузки
-        function tryLoadWithPath(path) {
-            return new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('HEAD', path, true);
-                xhr.onload = () => resolve(xhr.status === 200);
-                xhr.onerror = () => reject(false);
-                xhr.send();
-            });
+        // Проверяем существование файлов перед загрузкой
+        function checkFileExists(url) {
+            return fetch(url, { method: 'HEAD' })
+                .then(response => response.ok)
+                .catch(() => false);
         }
 
-        async function findCorrectPath() {
-            const possiblePaths = [
-                'Build/Telegram.loader.js',
-                './Build/Telegram.loader.js',
-                '/Build/Telegram.loader.js',
-                'maze/Build/Telegram.loader.js',
-                '/maze/Build/Telegram.loader.js'
-            ];
-
-            for (const path of possiblePaths) {
-                try {
-                    showError('Проверяем путь: ' + path);
-                    const exists = await tryLoadWithPath(path);
-                    if (exists) {
-                        showError('✅ Найден правильный путь: ' + path);
-                        return path.substring(0, path.lastIndexOf('/'));
-                    }
-                } catch (e) {
-                    console.log('Путь не работает:', path);
-                }
-            }
-            return null;
-        }
-
-        // Основная функция загрузки
         async function initGame() {
-            showError('Поиск файлов игры...');
+            const loaderUrl = buildUrl + '/Telegram.loader.js';
 
-            // Пытаемся найти правильный путь
-            const correctPath = await findCorrectPath();
+            log('Проверяем наличие: ' + loaderUrl);
 
-            if (!correctPath) {
-                showError('❌ НЕ НАЙДЕНЫ файлы игры!');
-                showError('Убедитесь, что папка Build существует и содержит файлы:');
-                showError('- Telegram.loader.js');
-                showError('- telegram.data');
-                showError('- telegram.framework.js');
-                showError('- telegram.wasm');
+            const exists = await checkFileExists(loaderUrl);
+
+            if (!exists) {
+                log('❌ ФАЙЛ НЕ НАЙДЕН!');
+                log('Текущий URL страницы: ' + window.location.href);
+                log('Попробуйте другие варианты buildUrl в коде');
+                log('');
+                log('Проверьте, что файлы существуют по адресу:');
+                log(loaderUrl);
                 return;
             }
 
-            const buildUrl = correctPath;
-            const loaderUrl = buildUrl + '/Telegram.loader.js';
-
-            showError('Загружаем: ' + loaderUrl);
+            log('✅ Файл найден! Загружаем...');
 
             const config = {
                 dataUrl: buildUrl + '/telegram.data',
@@ -322,32 +290,27 @@
             script.src = loaderUrl;
 
             script.onload = () => {
-                showError('✅ Загрузчик загружен');
+                log('✅ Загрузчик загружен');
 
                 if (typeof createUnityInstance === 'undefined') {
-                    showError('❌ Ошибка: createUnityInstance не определена!');
+                    log('❌ Ошибка: createUnityInstance не определена!');
                     return;
                 }
 
-                showError('Запуск Unity...');
+                log('Запуск Unity...');
 
                 createUnityInstance(canvas, config, (progress) => {
                     const percent = Math.round(progress * 100);
                     progressBarFull.style.width = percent + "%";
                     progressPercent.textContent = percent + "%";
-                    if (percent % 10 === 0) {
-                        showError('Прогресс: ' + percent + '%');
-                    }
                 }).then((instance) => {
-                    showError('✅ Игра успешно загружена!');
+                    log('✅ Игра успешно загружена!');
                     loadingBar.style.display = "none";
                     window.unityInstance = instance;
 
-                    // Telegram интеграция
-                    if (window.Telegram && Telegram.WebApp) {
+                    if (window.Telegram?.WebApp) {
                         Telegram.WebApp.ready();
                         Telegram.WebApp.expand();
-                        showError('Telegram WebApp инициализирован');
 
                         if (Telegram.WebApp.initDataUnsafe?.user) {
                             const u = Telegram.WebApp.initDataUnsafe.user;
@@ -357,30 +320,25 @@
                                     first_name: u.first_name,
                                     username: u.username
                                 }));
-                                showError('Данные пользователя отправлены');
                             } catch (e) {
-                                showError('Ошибка отправки данных: ' + e);
+                                log('Ошибка отправки данных: ' + e);
                             }
                         }
                     }
                 }).catch(err => {
-                    showError('❌ Ошибка загрузки Unity: ' + err);
+                    log('❌ Ошибка загрузки Unity: ' + err);
                     unityShowBanner("Ошибка загрузки Unity: " + err, "error");
                 });
             };
 
-            script.onerror = (e) => {
-                showError('❌ Ошибка загрузки скрипта: ' + loaderUrl);
-                showError('Проверьте, существует ли файл по этому адресу');
+            script.onerror = () => {
+                log('❌ Ошибка загрузки скрипта');
             };
 
             document.body.appendChild(script);
         }
 
-        // Запускаем инициализацию после загрузки страницы
-        window.onload = () => {
-            initGame();
-        };
+        window.onload = initGame;
     </script>
 </body>
 </html>
