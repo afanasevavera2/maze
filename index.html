@@ -204,17 +204,21 @@
             }, 5000);
         }
 
-        // ИСПРАВЛЕНО: Правильные пути для вашей структуры
+        // ИСПРАВЛЕНО: Правильные имена файлов из вашей папки Build
         const buildPath = 'Build/';
-        const loaderUrl = buildPath + 'Telegram.loader.js';
 
-        // Проверяем, какие файлы есть в папке Build
-        console.log('Загрузка из:', buildPath);
+        // Ваши файлы называются:
+        // - Build.loader.js
+        // - Build.data.unityweb
+        // - Build.framework.js.unityweb
+        // - Build.wasm.unityweb
+
+        const loaderUrl = buildPath + 'Build.loader.js';
 
         const config = {
-            dataUrl: buildPath + 'telegram.data',
-            frameworkUrl: buildPath + 'telegram.framework.js',
-            codeUrl: buildPath + 'telegram.wasm',
+            dataUrl: buildPath + 'Build.data.unityweb',
+            frameworkUrl: buildPath + 'Build.framework.js.unityweb',
+            codeUrl: buildPath + 'Build.wasm.unityweb',
             streamingAssetsUrl: 'StreamingAssets',
             companyName: 'DefaultCompany',
             productName: 'Maze',
@@ -224,6 +228,9 @@
 
         // Показываем загрузочный экран
         loadingBar.style.display = "block";
+
+        console.log('Загрузка из:', buildPath);
+        console.log('Loader:', loaderUrl);
 
         // Загружаем игру
         const script = document.createElement('script');
@@ -266,11 +273,11 @@
 
         script.onerror = (error) => {
             console.error('Ошибка загрузки загрузчика:', error);
-            unityShowBanner('Не удалось загрузить ' + loaderUrl + '. Проверьте, что файлы игры есть в папке Build/', 'error');
+            unityShowBanner('Не удалось загрузить ' + loaderUrl, 'error');
             loadingBar.style.display = "none";
         };
 
         document.body.appendChild(script);
     </script>
 </body>
-</html>
+</html></html>
